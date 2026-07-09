@@ -35,9 +35,7 @@ namespace MagicTile.TileSystem
 
         public override float GetTopEdgeY()
         {
-            if (_boxCollider != null)
-                return _boxCollider.bounds.max.y;
-            return transform.position.y;
+            return transform.position.y + _spriteRenderer.size.y;
         }
 
         private void AdjustColliderToSprite()

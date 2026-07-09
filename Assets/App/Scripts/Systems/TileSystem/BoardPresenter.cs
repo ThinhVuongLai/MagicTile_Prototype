@@ -3,8 +3,11 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using MagicTile.Events;
+using MagicTile.Audio;
 using MagicTile.Pool;
 using MagicTile.ScoreSystem;
+using MagicTile.UI.Menu;
+using MagicTile.ServiceLocator;
 
 namespace MagicTile.TileSystem
 {
@@ -15,32 +18,11 @@ namespace MagicTile.TileSystem
     /// </summary>
     public class BoardPresenter : MonoBehaviour
     {
-        [Header("Beatmap")]
-        [SerializeField] private TextAsset _beatMapJson;
-
-        [Header("Tile Prefabs")]
-        [SerializeField] private ShortTileView _shortPrefab;
-        [SerializeField] private LongTileView _longPrefab;
-        [SerializeField] private ZigzagTileView _zigzagPrefab;
-        [SerializeField] private MoodTileView _moodPrefab;
-
-        [Header("Pooling")]
-        [SerializeField] private PoolService _poolService;
-
-        [Header("Timing & Thresholds")]
-        [SerializeField] private float _spawnLeadTime = 5f;
-        [SerializeField] private float _missThreshold = 0f;
-        [SerializeField] private float _hitThreshold = 0f;
-
-        [Header("Layout")]
-        [SerializeField] private float _hitLineY = -4f;
-        [SerializeField] private float[] _laneXPositions = { -4.5f, -1.5f, 1.5f, 4.5f };
-
-        [Header("Audio")]
-        [SerializeField] private AudioSource _audioSource;
-
         [Header("Loop Settings")]
         [SerializeField] private bool _loopLevel;
+
+        [Header("UI")]
+        [SerializeField] private IngameMenuView _ingameMenuPrefab;
 
         // --- Runtime ---
 
@@ -49,8 +31,14 @@ namespace MagicTile.TileSystem
         private readonly List<TilePresenter> _tiles = new();
         private int _nextNoteIndex = 0;
         private float _currentTime = 0f;
-        private bool _isPlaying = false;
-        private float? _pendingSeekTime = null;
+
+        private ILevelService _levelService;
+
+        private PoolService _poolService;
+        private AudioService _audioService;
+        private LevelRunTimeConfig _levelConfig;
+        private float _missThreshold;
+        private float _hitThreshold;
 
         /// <summary>Triggered khi mood note đến time. Subscribe để xử lý visual (bg_color, shadow...).</summary>
         public event Action<MetaData[]> OnMoodTriggered;
@@ -59,24 +47,40 @@ namespace MagicTile.TileSystem
 
         private void Start()
         {
-            if (_beatMapJson != null)
-                StartGame();
+            _poolService = ServiceLocator.ServiceLocator.Get<PoolService>();
+            _audioService = ServiceLocator.ServiceLocator.Get<AudioService>();
+            _levelService = ServiceLocator.ServiceLocator.Get<ILevelService>();
         }
 
         public void StartGame()
         {
             Time.timeScale = 0.5f;
 
-            _beatMap = BeatMapLoader.Load(_beatMapJson);
+            IngameMenuPresenter ingameMenuPresenter = new IngameMenuPresenter(_ingameMenuPrefab);
+
+            var levelService = ServiceLocator.ServiceLocator.Get<ILevelService>();
+            levelService?.SetLevelStatus(LevelStatus.Start);
+            var configManager = ServiceLocator.ServiceLocator.Get<ConfigManager>();
+            var levelInfo = levelService?.CurrentLevelConfig;
+
+            if (!string.IsNullOrEmpty(levelInfo?.jsonPath))
+                _beatMap = BeatMapLoader.LoadFromResources(levelInfo.jsonPath);
+
+            if (_beatMap == null)
+                _beatMap = BeatMapLoader.Load(configManager?.LevelConfig?.DefaultJson);
+
             if (_beatMap == null)
             {
                 Debug.LogError("[BoardPresenter] Failed to load beatmap.");
                 return;
             }
 
-            _tileFactory = new TileFactory(
-                _poolService, _shortPrefab, _longPrefab, _zigzagPrefab, _moodPrefab);
+            _tileFactory = new TileFactory();
 
+            _levelConfig = ServiceLocator.ServiceLocator.Get<ConfigManager>().LevelRunTimeConfig;
+
+            _missThreshold = _levelConfig.MissThreshold;
+            _hitThreshold = _levelConfig.HitThreshold;
             if (_missThreshold <= 0f)
                 _missThreshold = _beatMap.VisualSpeed * 0.5f;
             if (_hitThreshold <= 0f)
@@ -84,29 +88,35 @@ namespace MagicTile.TileSystem
 
             _nextNoteIndex = 0;
             _currentTime = 0f;
-            _isPlaying = true;
 
             ScoreLevelManager.Instance.Reset();
 
             EventBus.Instance.Subscribe<LoseEvent>(OnLose);
 
-            _audioSource.Play();
+            _audioService.Play();
         }
 
-        public void Pause() => _isPlaying = false;
-        public void Resume() => _isPlaying = true;
+        public void Pause()
+        {
+            _levelService?.SetLevelStatus(LevelStatus.Pause);
+        }
+
+        public void Resume()
+        {
+            _levelService?.SetLevelStatus(LevelStatus.Start);
+        }
 
         public void Stop()
         {
-            _isPlaying = false;
+            _levelService?.SetLevelStatus(LevelStatus.None);
             ClearAllTiles();
         }
 
         private void Update()
         {
-            if (!_isPlaying) return;
+            if (_levelService == null || !_levelService.IsStatus(LevelStatus.Start)) return;
 
-            _currentTime = _audioSource.time;
+            _currentTime = _audioService.Time;
 
             SpawnTiles();
 
@@ -122,24 +132,16 @@ namespace MagicTile.TileSystem
                 }
             }
 
-            if (_pendingSeekTime.HasValue)
-            {
-                float targetTime = _pendingSeekTime.Value;
-                _pendingSeekTime = null;
-                SeekTo(targetTime);
-                return;
-            }
-
             if (_nextNoteIndex > 0 && _nextNoteIndex >= _beatMap.NoteCount && _tiles.Count <= 0)
             {
                 if (_loopLevel)
                 {
                     StartCoroutine(LoopRestart());
-                    _isPlaying = false;
+                    _levelService?.SetLevelStatus(LevelStatus.None);
                 }
                 else
                 {
-                    _isPlaying = false;
+                    _levelService?.SetLevelStatus(LevelStatus.Complete);
                     OnLevelFinished?.Invoke();
                 }
             }
@@ -151,9 +153,9 @@ namespace MagicTile.TileSystem
             {
                 NoteData note = _beatMap.GetNote(_nextNoteIndex);
 
-                if (note.time <= _currentTime + _spawnLeadTime)
+                if (note.time <= _currentTime + _levelConfig.SpawnLeadTime)
                 {
-                    CreateTile(note);
+                    CreateTile(note, _nextNoteIndex);
                     _nextNoteIndex++;
                 }
                 else
@@ -163,17 +165,17 @@ namespace MagicTile.TileSystem
             }
         }
 
-        private void CreateTile(NoteData note)
+        private void CreateTile(NoteData note, int noteIndex)
         {
-            var model = new TileModel(note);
+            var model = new TileModel(note, noteIndex);
             TileView view = _tileFactory.Create(model.Type);
             if (view == null) return;
 
-            view.Configure(note, _beatMap.VisualSpeed, _laneXPositions);
+            view.Configure(note, _beatMap.VisualSpeed, _levelConfig.LaneXPositions);
 
             // Mood không cần lane position (không di chuyển).
             if (model.Type != TileType.Mood)
-                view.SetLanePosition(_laneXPositions[note.lane - 1]);
+                view.SetLanePosition(_levelConfig.LaneXPositions[note.lane - 1]);
 
             // Subscribe mood event
             if (view is MoodTileView moodView)
@@ -181,7 +183,7 @@ namespace MagicTile.TileSystem
 
             var presenter = new TilePresenter(
                 model, view, _beatMap.VisualSpeed,
-                _missThreshold, _hitThreshold, _hitLineY);
+                _missThreshold, _hitThreshold, _levelConfig.HitLineY);
 
             view.Initialize(presenter);
             _tiles.Add(presenter);
@@ -205,36 +207,97 @@ namespace MagicTile.TileSystem
 
         private void OnLose(LoseEvent e)
         {
-            _pendingSeekTime = e.TileTime;
+            _levelService?.SetLevelStatus(LevelStatus.Lose);
+            _audioService.Pause();
+
+            StartCoroutine(RunSeek(e.TileTime, false));
         }
 
-        private void SeekTo(float targetTime)
+        private IEnumerator RunSeek(float targetTime, bool force = true)
         {
-            _isPlaying = false;
-            ClearAllTiles();
+            yield return new WaitForEndOfFrame();
 
-            _audioSource.time = targetTime;
+            SeekTo(targetTime, force);
+        }
+
+        private void SeekTo(float targetTime, bool force = true)
+        {
+            for (int i = _tiles.Count - 1; i >= 0; i--)
+            {
+                if (_tiles[i].ShouldRemove)
+                {
+                    _poolService.Release(_tiles[i].View);
+                    _tiles.RemoveAt(i);
+                }
+            }
+
+            _audioService.Time = targetTime;
             _currentTime = targetTime;
 
-            _nextNoteIndex = 0;
-            while (_nextNoteIndex < _beatMap.NoteCount
-                   && _beatMap.GetNote(_nextNoteIndex).time < targetTime)
-                _nextNoteIndex++;
+            if (force)
+            {
+                for (int i = 0; i < _tiles.Count; i++)
+                {
+                    if (_tiles[i].Model.Type != TileType.Mood)
+                        _tiles[i].SetPositionByTime(targetTime);
+                }
+            }
+            else
+            {
+                if (_tiles.Count == 0) return;
 
-            SpawnTiles();
+                TilePresenter firstTile = null;
+                for (int i = 0; i < _tiles.Count; i++)
+                {
+                    if (_tiles[i].Model.Type != TileType.Mood)
+                    {
+                        firstTile = _tiles[i];
+                        break;
+                    }
+                }
+                if (firstTile == null) return;
 
-            for (int i = 0; i < _tiles.Count; i++)
-                _tiles[i].Tick(_currentTime);
+                float currentY = firstTile.View.transform.position.y;
+                firstTile.SetPositionByTime(targetTime);
+                float targetY = firstTile.View.transform.position.y;
+                firstTile.View.SetPosition(currentY);
+
+                float totalDeltaY = targetY - currentY;
+                StartCoroutine(AnimateSeek(totalDeltaY, _levelConfig.SeekDuration));
+            }
+        }
+
+        private IEnumerator AnimateSeek(float totalDeltaY, float duration)
+        {
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                float dt = Time.unscaledDeltaTime;
+                float clampedDt = Mathf.Min(dt, duration - elapsed);
+                elapsed += clampedDt;
+                float frameDeltaY = totalDeltaY * (clampedDt / duration);
+
+                for (int i = 0; i < _tiles.Count; i++)
+                {
+                    if (_tiles[i].Model.Type != TileType.Mood)
+                        _tiles[i].AddPositionY(frameDeltaY);
+                }
+
+                if (clampedDt <= 0f)
+                    yield return null;
+                else
+                    yield return null;
+            }
         }
 
         private IEnumerator LoopRestart()
         {
-            _audioSource.Stop();
+            _audioService.Stop();
             ClearAllTiles();
 
             yield return new WaitForSeconds(GlobalData.Instance.LoopRestartDelay);
 
-            _audioSource.pitch += 0.2f;
+            _audioService.Pitch += 0.2f;
             StartGame();
         }
     }

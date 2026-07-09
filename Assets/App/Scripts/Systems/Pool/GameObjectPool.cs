@@ -16,6 +16,8 @@ namespace MagicTile.Pool
 
         public int InactiveCount => _inactive.Count;
 
+        private int _index = 0;
+
         public GameObjectPool(GameObject prefab, Transform parent, int prewarmCount = 0, int maxSize = 100)
         {
             _prefab = prefab;
@@ -29,7 +31,21 @@ namespace MagicTile.Pool
         /// </summary>
         public GameObject Get()
         {
-            GameObject obj = _inactive.Count > 0 ? _inactive.Dequeue() : Object.Instantiate(_prefab, _parent);
+            GameObject obj = null;
+
+            if (_inactive.Count > 0)
+            {
+                obj = _inactive.Dequeue();
+            }
+            else
+            {
+                obj = Object.Instantiate(_prefab, _parent);
+
+#if UNITY_EDITOR
+                obj.name = $"{_prefab.name}_{_index}";
+                _index++;
+#endif
+            }
 
             obj.SetActive(true);
             if (obj.TryGetComponent<IPoolable>(out var poolable))
@@ -73,6 +89,11 @@ namespace MagicTile.Pool
                 GameObject obj = Object.Instantiate(_prefab, _parent);
                 obj.SetActive(false);
                 _inactive.Enqueue(obj);
+
+#if UNITY_EDITOR
+                obj.name = $"{_prefab.name}_{_index}";
+                _index++;
+#endif
             }
         }
     }

@@ -23,6 +23,7 @@ namespace MagicTile.Events
         public int Lane;
         public int BasePoints;         // 2 cho tap, bonus cho drag_complete
         public bool IsDragComplete;    // true nếu là sự kiện drag-completion
+        public HitAccuracy Accuracy;   // độ chính xác dựa trên vị trí tile so với hit line
     }
 
     /// <summary>
@@ -34,6 +35,7 @@ namespace MagicTile.Events
         public int TotalScore;
         public int AddedScore;
         public float ComboMultiplier;
+        public HitAccuracy Accuracy;
     }
 
     /// <summary>
@@ -53,5 +55,6 @@ namespace MagicTile.Events
     public struct LoseEvent
     {
         public float TileTime;
+        public int NoteIndex;
     }
 }

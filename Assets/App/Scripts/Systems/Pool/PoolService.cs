@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
+using MagicTile.ServiceLocator;
 
 namespace MagicTile.Pool
 {
@@ -26,6 +28,8 @@ namespace MagicTile.Pool
 
         private void Awake()
         {
+            ServiceLocator.ServiceLocator.Register(this);
+
             foreach (PoolConfig config in _configs)
             {
                 if (config.prefab == null)
@@ -80,7 +84,10 @@ namespace MagicTile.Pool
         /// </summary>
         public void Release(Component component)
         {
-            Release(component.gameObject);
+            if (!component.IsDestroyed())
+            {
+                Release(component.gameObject);
+            }
         }
 
         /// <summary>
@@ -107,6 +114,7 @@ namespace MagicTile.Pool
 
         private void OnDestroy()
         {
+            ServiceLocator.ServiceLocator.Unregister<PoolService>();
             ClearAll();
         }
     }

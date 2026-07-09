@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ea76370e648cc4e4eacef60d3f37565f, type: 3}
+  m_Name: ScoreMilestoneItemConfig
+  m_EditorClassIdentifier: 
+  <MilestonePrefabs>k__BackingField:
+  - type: 0
+    prefab: {fileID: 1646808168774934207, guid: a593fb31f924e7741a2bb4a64152520f, type: 3}
+  - type: 1
+    prefab: {fileID: 8672755667030205347, guid: 0d6933feaffdd4442901363010d41bef, type: 3}

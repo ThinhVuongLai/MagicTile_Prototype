@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 using MagicTile.Pool;
+using MagicTile.ServiceLocator;
 
 namespace MagicTile.TileSystem
 {
@@ -30,6 +31,13 @@ namespace MagicTile.TileSystem
         {
             Vector3 pos = transform.position;
             pos.x = x;
+            transform.position = pos;
+        }
+
+        public void AddPositionY(float deltaY)
+        {
+            Vector3 pos = transform.position;
+            pos.y += deltaY;
             transform.position = pos;
         }
 
@@ -67,6 +75,10 @@ namespace MagicTile.TileSystem
 
         public virtual void OnPointerDown(PointerEventData eventData)
         {
+            var levelService = ServiceLocator.ServiceLocator.Get<ILevelService>();
+            if (levelService == null || !levelService.IsStatus(LevelStatus.Start))
+                return;
+
             Presenter?.OnInput();
         }
 

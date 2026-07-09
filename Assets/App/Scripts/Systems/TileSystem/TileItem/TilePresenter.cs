@@ -46,11 +46,9 @@ namespace MagicTile.TileSystem
             }
 
             // Tính vị trí: (noteTime - currentTime) * visualSpeed
-            float position = (_model.Time - currentTime) * _visualSpeed * GlobalData.Instance.ScaleUnitForMoveTile;
-            _model.Position = position;
-            _view.SetPosition(_hitLineY + position);
+            SetPositionByTime(currentTime);
 
-            // Auto-hide khi cạnh trên của tile nằm dưới cạnh dưới màn hình
+            // Miss detection: tile rơi quá màn hình mà chưa hit
             float screenBottomY = Camera.main.transform.position.y - Camera.main.orthographicSize;
             if (_view.GetTopEdgeY() < screenBottomY - GlobalData.Instance.AutoHideOffsetBelowScreen)
             {
@@ -58,9 +56,8 @@ namespace MagicTile.TileSystem
                 {
                     _model.SetMissed();
                     _model.SetState(TileState.Missed);
-                    EventBus.Instance.Publish(new LoseEvent { TileTime = _model.Time });
+                    EventBus.Instance.Publish(new LoseEvent { TileTime = _model.Time, NoteIndex = _model.NoteIndex });
                 }
-                _model.MarkHidden();
                 return;
             }
 
@@ -86,6 +83,18 @@ namespace MagicTile.TileSystem
             // }
         }
 
+        public void SetPositionByTime(float currentTime)
+        {
+            float position = (_model.Time - currentTime) * _visualSpeed * GlobalData.Instance.ScaleUnitForMoveTile;
+            _model.Position = position;
+            _view.SetPosition(_hitLineY + position);
+        }
+
+        public void AddPositionY(float addValue)
+        {
+            _view.AddPositionY(addValue);
+        }
+
         public void OnInput()
         {
             if (_model.IsHit || _model.IsMissed || _model.IsHidden)
@@ -105,7 +114,8 @@ namespace MagicTile.TileSystem
                 TileType       = _model.Type,
                 Lane           = _model.Lane,
                 BasePoints     = 2,
-                IsDragComplete = false
+                IsDragComplete = false,
+                Accuracy       = CalculateAccuracy()
             });
 
             (_view as IHitStrategy)?.Hit(_model);
@@ -122,12 +132,22 @@ namespace MagicTile.TileSystem
                 TileType       = _model.Type,
                 Lane           = _model.Lane,
                 BasePoints     = bonus,
-                IsDragComplete = true
+                IsDragComplete = true,
+                Accuracy       = CalculateAccuracy()
             });
 
             _model.SetDragCompleted();
             _model.SetState(TileState.Completed);
             _model.MarkHidden();
+        }
+
+        private HitAccuracy CalculateAccuracy()
+        {
+            float absPos = Mathf.Abs(_model.Position);
+            if (absPos <= _hitThreshold * 0.33f) return HitAccuracy.Perfect;
+            if (absPos <= _hitThreshold * 0.66f) return HitAccuracy.Great;
+            if (absPos <= _hitThreshold)         return HitAccuracy.Good;
+            return HitAccuracy.Miss;
         }
     }
 }

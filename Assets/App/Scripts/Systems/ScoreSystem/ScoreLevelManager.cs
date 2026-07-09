@@ -59,7 +59,8 @@ namespace MagicTile.ScoreSystem
             {
                 TotalScore       = _currentScore,
                 AddedScore       = addedScore,
-                ComboMultiplier  = comboMult
+                ComboMultiplier  = comboMult,
+                Accuracy         = e.Accuracy
             });
 
             EventBus.Instance.Publish(new ComboChangedEvent

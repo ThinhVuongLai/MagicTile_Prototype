@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 using System.Collections.Generic;
+using MagicTile.ServiceLocator;
 
 namespace MagicTile.TileSystem
 {
@@ -24,6 +25,8 @@ namespace MagicTile.TileSystem
         private MaterialPropertyBlock _fillPropertyBlock;
         private MeshRenderer _fillMeshRenderer;
         private PolygonCollider2D _polygonCollider;
+
+        private float _maxY = 0;
 
         protected override void OnGetFromPoolInternal()
         {
@@ -60,6 +63,9 @@ namespace MagicTile.TileSystem
                 {
                     float x = laneXPositions[cp.lane - 1] - startX;
                     float y = (cp.time - note.time) * visualSpeed * GlobalData.Instance.ScaleUnitForMoveTile;
+
+                    _maxY = y;
+
                     points.Add(new Vector3(x, y, 0f));
                 }
             }
@@ -88,6 +94,10 @@ namespace MagicTile.TileSystem
 
         public override void OnPointerDown(PointerEventData eventData)
         {
+            var levelService = ServiceLocator.ServiceLocator.Get<ILevelService>();
+            if (levelService == null || !levelService.IsStatus(LevelStatus.Start))
+                return;
+
             _isPointerHolding = true;
             SetFillSize(Camera.main.ScreenToWorldPoint(eventData.position));
             base.OnPointerDown(eventData);
@@ -139,7 +149,7 @@ namespace MagicTile.TileSystem
             if (revealY <= _currentRevealY) return;
 
             _currentRevealY = revealY;
-        _fillPropertyBlock.SetFloat(RevealYID, revealY);
+            _fillPropertyBlock.SetFloat(RevealYID, revealY);
             _fillMeshRenderer.SetPropertyBlock(_fillPropertyBlock);
         }
 
@@ -175,9 +185,7 @@ namespace MagicTile.TileSystem
 
         public override float GetTopEdgeY()
         {
-            if (_polygonCollider != null)
-                return _polygonCollider.bounds.max.y;
-            return transform.position.y;
+            return transform.position.y + _maxY;
         }
     }
 }

@@ -26,6 +26,7 @@ namespace MagicTile.TileSystem
     {
         // --- Static data (from NoteData, set at construction) ---
 
+        public int NoteIndex { get; }
         public int Lane { get; }
         public float Time { get; }              // hit time in seconds
         public TileType Type { get; }
@@ -42,8 +43,9 @@ namespace MagicTile.TileSystem
         public float Position { get; set; }           // Y offset from hit line
         public TileState State { get; private set; }
 
-        public TileModel(NoteData note)
+        public TileModel(NoteData note, int noteIndex)
         {
+            NoteIndex = noteIndex;
             Lane = note.lane;
             Time = note.time;
             Type = ParseType(note.type);

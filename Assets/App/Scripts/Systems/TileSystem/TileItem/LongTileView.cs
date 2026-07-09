@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
+using MagicTile.ServiceLocator;
 
 namespace MagicTile.TileSystem
 {
@@ -60,9 +61,11 @@ namespace MagicTile.TileSystem
 
         public override void OnPointerDown(PointerEventData eventData)
         {
-            _isPointerHolding = true;
+            var levelService = ServiceLocator.ServiceLocator.Get<ILevelService>();
+            if (levelService == null || !levelService.IsStatus(LevelStatus.Start))
+                return;
 
-            Debug.LogError("Is Long Hit");
+            _isPointerHolding = true;
 
             SetFillSize(Camera.main.ScreenToWorldPoint(eventData.position));
 
@@ -83,8 +86,6 @@ namespace MagicTile.TileSystem
             if (fingerWorldPos.y >= thresholdY)
             {
                 _isPointerHolding = false;
-
-                Debug.LogError("Is Long Complete");
 
                 Presenter?.OnDragComplete();
             }
@@ -132,9 +133,7 @@ namespace MagicTile.TileSystem
 
         public override float GetTopEdgeY()
         {
-            if (_boxCollider != null)
-                return _boxCollider.bounds.max.y;
-            return transform.position.y;
+            return transform.position.y + _spriteRenderer.size.y;
         }
     }
 }
