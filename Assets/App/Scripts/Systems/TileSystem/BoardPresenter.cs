@@ -44,6 +44,7 @@ namespace MagicTile.TileSystem
         private Camera _mainCamera;
         private readonly Dictionary<int, TilePresenter> _dragTiles = new();
         private const int MOUSE_POINTER_ID = -1;
+        private TileConfig _tileConfig;
 
         public event Action OnLevelFinished;
 
@@ -79,6 +80,7 @@ namespace MagicTile.TileSystem
             _tileFactory = new TileFactory();
 
             _levelConfig = ServiceLocator.ServiceLocator.Get<ConfigManager>().LevelRunTimeConfig;
+            _tileConfig = ServiceLocator.ServiceLocator.Get<ConfigManager>().TileConfig;
 
             _missThreshold = _levelConfig.MissThreshold;
             _hitThreshold = _levelConfig.HitThreshold;
@@ -101,16 +103,23 @@ namespace MagicTile.TileSystem
         public void Pause()
         {
             _levelService?.SetLevelStatus(LevelStatus.Pause);
+
+            _audioService.Pause();
         }
 
         public void Resume()
         {
             _levelService?.SetLevelStatus(LevelStatus.Start);
+
+            _audioService.Resume();
         }
 
         public void Stop()
         {
             _levelService?.SetLevelStatus(LevelStatus.None);
+
+            _audioService.Stop();
+
             ClearAllTiles();
         }
 
@@ -267,6 +276,7 @@ namespace MagicTile.TileSystem
             int lane = GetLaneFromWorldX(worldPos.x);
             if (lane < 0) return;
 
+            // --- Thử CheckHit trên tile cùng lane ---
             for (int i = 0; i < _tiles.Count; i++)
             {
                 var tile = _tiles[i];
@@ -280,8 +290,54 @@ namespace MagicTile.TileSystem
                         dragView.StartDrag(worldPos);
                         _dragTiles[pointerId] = tile;
                     }
-                    break;
+                    return;
                 }
+            }
+
+            // --- Không hit tile nào → tìm tile gần nhất theo Y ---
+            SpawnMissEffect(lane, worldPos.y);
+        }
+
+        private void SpawnMissEffect(int lane, float touchY)
+        {
+            TilePresenter closestTile = null;
+            float closestDist = float.MinValue;
+
+            for (int i = 0; i < _tiles.Count; i++)
+            {
+                var tile = _tiles[i];
+                if (tile.Model.IsHit || tile.Model.IsMissed || tile.Model.IsHidden) continue;
+                if (tile.Model.Type == TileType.Mood) continue;
+
+                float tileY = tile.View.transform.position.y;
+                if (tileY <= touchY)
+                {
+                    float dist = tileY - touchY;
+                    if (dist > closestDist)
+                    {
+                        closestDist = dist;
+                        closestTile = tile;
+                    }
+                }
+            }
+
+            if (closestTile == null) return;
+
+            Pause();
+
+            if (_tileConfig.MissPrefab != null)
+            {
+                var poolService = ServiceLocator.ServiceLocator.Get<PoolService>();
+                MissTileItem missObj = poolService?.Get(_tileConfig.MissPrefab);
+
+                if (missObj == null) return;
+
+                float laneX = _levelConfig.LaneXPositions[lane - 1];
+                float tileY = closestTile.View.transform.position.y;
+                missObj.transform.position = new Vector3(laneX, tileY, 0f);
+
+                float height = closestTile.View.GetSpriteBounds().size.y;
+                missObj.UpdatespriteRenderer(height);
             }
         }
 

@@ -15,9 +15,9 @@ namespace MagicTile.TileSystem
     public class TileConfig : ScriptableObject
     {
         [SerializeField] private List<TilePrefabInfor> _tilePrefabs;
-        [SerializeField] private GameObject _missPrefab;
+        [SerializeField] private MissTileItem _missPrefab;
 
-        public GameObject MissPrefab => _missPrefab;
+        public MissTileItem MissPrefab => _missPrefab;
 
         public TileView GetPrefabByType(TileType type)
         {
