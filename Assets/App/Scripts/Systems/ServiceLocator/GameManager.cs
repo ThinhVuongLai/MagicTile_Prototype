@@ -5,8 +5,6 @@ namespace MagicTile.ServiceLocator
 {
     public class GameManager : MonoBehaviour
     {
-        [SerializeField] private BoardPresenter _boardPresenter;
-
         private void Awake()
         {
             Init();
@@ -31,10 +29,6 @@ namespace MagicTile.ServiceLocator
 
         public void Init()
         {
-            var configManager = ServiceLocator.Get<ConfigManager>();
-            var levelManager = new LevelManager(_boardPresenter, configManager.LevelConfig);
-            ServiceLocator.Register<ILevelService>(levelManager);
-
             var uiManager = new UIManager();
             ServiceLocator.Register<IUiService>(uiManager);
         }

@@ -10,6 +10,8 @@ namespace MagicTile.TileSystem
     {
         public int levelIndex;
         public string jsonPath;
+        public int backgroundIndex;
+        public float countdownDuration = 3f;
         public List<MilestoneData> milestones;
     }
 

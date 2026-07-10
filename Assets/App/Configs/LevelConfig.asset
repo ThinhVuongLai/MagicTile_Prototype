@@ -16,6 +16,8 @@ MonoBehaviour:
   _levels:
   - levelIndex: 0
     jsonPath: Data/Levels/Nobatidao
+    backgroundIndex: 0
+    countdownDuration: 1
     milestones:
     - type: 0
       score: 300

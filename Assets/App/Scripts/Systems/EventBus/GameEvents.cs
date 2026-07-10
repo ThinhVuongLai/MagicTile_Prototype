@@ -57,4 +57,13 @@ namespace MagicTile.Events
         public float TileTime;
         public int NoteIndex;
     }
+
+    /// <summary>
+    /// Được publish bởi BoardPresenter khi mood tile trigger.
+    /// LevelBackgroundPresenter dùng metas (bg_color, shadow...) để thay đổi background.
+    /// </summary>
+    public struct MoodTriggeredEvent
+    {
+        public MetaData[] Metas;
+    }
 }

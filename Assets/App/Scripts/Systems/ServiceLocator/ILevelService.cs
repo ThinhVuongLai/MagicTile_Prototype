@@ -17,5 +17,7 @@ namespace MagicTile.ServiceLocator
         void StartLevel(int levelIndex);
         void SetLevelStatus(LevelStatus status);
         bool IsStatus(LevelStatus status);
+        void ResetLevel();
+        void SetSlowLevel(float duration = 5f);
     }
 }

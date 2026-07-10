@@ -115,8 +115,6 @@ namespace MagicTile.TileSystem
 
             if (fingerWorldPos.y >= thresholdY)
             {
-                Debug.LogError("Is Zigzag Complete");
-
                 _isPointerHolding = false;
                 Presenter?.OnDragComplete();
             }
