@@ -1,4 +1,5 @@
 using MagicTile.TileSystem;
+using MagicTile.Booster;
 
 namespace MagicTile.Events
 {
@@ -65,5 +66,30 @@ namespace MagicTile.Events
     public struct MoodTriggeredEvent
     {
         public MetaData[] Metas;
+    }
+
+    /// <summary>
+    /// Được publish bởi BoosterPresenter trong quá trình booster đang chạy.
+    /// RemainingPercent: 1.0 -> 0.0, Countdown: thời gian còn lại tính bằng giây (>= 0).
+    /// </summary>
+    public struct BoosterEvent
+    {
+        public BoosterType Type;
+        public float RemainingPercent;
+        public float Countdown;
+    }
+
+    /// <summary>
+    /// Được publish bởi BoosterPresenter khi Slow booster bắt đầu.
+    /// </summary>
+    public struct SlowStartEvent
+    {
+    }
+
+    /// <summary>
+    /// Được publish bởi BoosterPresenter khi Slow booster kết thúc.
+    /// </summary>
+    public struct SlowEndEvent
+    {
     }
 }

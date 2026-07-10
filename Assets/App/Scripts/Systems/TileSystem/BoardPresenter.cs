@@ -22,6 +22,9 @@ namespace MagicTile.TileSystem
         [Header("Loop Settings")]
         [SerializeField] private bool _loopLevel;
 
+        [Header("Level Lines")]
+        [SerializeField] private GameObject _levelLinePrefab;
+
         [Header("UI")]
         [SerializeField] private IngameMenuView _ingameMenuPrefab;
 
@@ -45,6 +48,7 @@ namespace MagicTile.TileSystem
         private readonly Dictionary<int, TilePresenter> _dragTiles = new();
         private const int MOUSE_POINTER_ID = -1;
         private TileConfig _tileConfig;
+        private readonly List<GameObject> _levelLines = new();
 
         public event Action OnLevelFinished;
 
@@ -97,6 +101,8 @@ namespace MagicTile.TileSystem
 
             ScoreLevelManager.Instance.Reset();
 
+            SpawnLevelLines();
+
             EventBus.Instance.Subscribe<LoseEvent>(OnLose);
         }
 
@@ -130,11 +136,6 @@ namespace MagicTile.TileSystem
             _audioService.Pitch = 1f;
             ScoreLevelManager.Instance.Reset();
             StartGame();
-        }
-
-        public void SetSlowLevel(float duration = 5f)
-        {
-            StartCoroutine(RunSlowLevel(duration));
         }
 
         private IEnumerator RunSlowLevel(float duration)
@@ -298,6 +299,22 @@ namespace MagicTile.TileSystem
             SpawnMissEffect(lane, worldPos.y);
         }
 
+        private void SpawnLevelLines()
+        {
+            if (_levelLinePrefab == null) return;
+
+            float[] laneXPositions = _levelConfig.LaneXPositions;
+            int laneCount = laneXPositions.Length;
+
+            for (int i = 0; i < laneCount - 1; i++)
+            {
+                float midX = (laneXPositions[i] + laneXPositions[i + 1]) * 0.5f;
+                var lineObj = _poolService.Get(_levelLinePrefab);
+                lineObj.transform.position = new Vector3(midX, 0f, 0f);
+                _levelLines.Add(lineObj);
+            }
+        }
+
         private void SpawnMissEffect(int lane, float touchY)
         {
             TilePresenter closestTile = null;
@@ -456,6 +473,11 @@ namespace MagicTile.TileSystem
                 _poolService.Release(_tiles[i].View);
             _tiles.Clear();
             _dragTiles.Clear();
+
+            for (int i = 0; i < _levelLines.Count; i++)
+                _poolService.Release(_levelLines[i]);
+            _levelLines.Clear();
+
             _nextNoteIndex = 0;
             _currentTime = 0f;
             _isCountdownPhase = false;

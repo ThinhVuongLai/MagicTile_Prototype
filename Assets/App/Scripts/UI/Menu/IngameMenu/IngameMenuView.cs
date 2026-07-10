@@ -11,6 +11,8 @@ namespace MagicTile.UI.Menu
         [SerializeField] private TextMeshProUGUI _totalScoreText;
         [SerializeField] private TextMeshProUGUI _accuracyText;
         [SerializeField] private TextMeshProUGUI _multiplierText;
+        [SerializeField] private Button _slowBoosterButton;
+        [SerializeField] private Image _fillCountDown;
 
         private float _progressMaxWidth;
         private MilestoneData[] _milestoneData;
@@ -33,9 +35,18 @@ namespace MagicTile.UI.Menu
             SetTotalScore(0);
             SetAccuracy("");
             SetMultiplier("", false);
+            HideFillCountDown();
 
             DestroyMilestones();
             SpawnMilestones();
+        }
+
+        public void EnableSlowBoosterButton(bool enable)
+        {
+            if (_slowBoosterButton)
+            {
+                _slowBoosterButton.interactable = enabled;
+            }
         }
 
         public void SetProgress(float ratio)
@@ -117,6 +128,24 @@ namespace MagicTile.UI.Menu
                 if (_milestonePrefabs[i].type == type)
                     return _milestonePrefabs[i].prefab;
             return null;
+        }
+
+        public Button SlowBoosterButton => _slowBoosterButton;
+
+        public void ShowFillCountDown()
+        {
+            _fillCountDown.gameObject.SetActive(true);
+            _fillCountDown.fillAmount = 0f;
+        }
+
+        public void SetFillCountDown(float amount)
+        {
+            _fillCountDown.fillAmount = amount;
+        }
+
+        public void HideFillCountDown()
+        {
+            _fillCountDown.gameObject.SetActive(false);
         }
     }
 }

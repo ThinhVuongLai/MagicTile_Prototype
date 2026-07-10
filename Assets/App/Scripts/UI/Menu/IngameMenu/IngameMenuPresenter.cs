@@ -1,3 +1,4 @@
+using MagicTile.Booster;
 using MagicTile.Events;
 using MagicTile.ServiceLocator;
 
@@ -24,6 +25,11 @@ namespace MagicTile.UI.Menu
 
             EventBus.Instance.Subscribe<ScoreChangedEvent>(OnScoreChanged);
             EventBus.Instance.Subscribe<ComboChangedEvent>(OnComboChanged);
+            EventBus.Instance.Subscribe<BoosterEvent>(OnBoosterEvent);
+            EventBus.Instance.Subscribe<SlowStartEvent>(OnSlowStart);
+            EventBus.Instance.Subscribe<SlowEndEvent>(OnSlowEnd);
+
+            _view.SlowBoosterButton.onClick.AddListener(OnSlowBoosterClicked);
         }
 
         private void OnScoreChanged(ScoreChangedEvent e)
@@ -55,12 +61,39 @@ namespace MagicTile.UI.Menu
             _view.SetMultiplier(text, show);
         }
 
+        private void OnSlowBoosterClicked()
+        {
+            var boosterService = ServiceLocator.ServiceLocator.Get<IBoosterService>();
+            boosterService?.RunBooster(BoosterType.Slow);
+
+            _view.EnableSlowBoosterButton(false);
+        }
+
+        private void OnSlowStart(SlowStartEvent e)
+        {
+            _view.ShowFillCountDown();
+        }
+
+        private void OnSlowEnd(SlowEndEvent e)
+        {
+            _view.HideFillCountDown();
+            _view.EnableSlowBoosterButton(true);
+        }
+
+        private void OnBoosterEvent(BoosterEvent e)
+        {
+            if (e.Type == BoosterType.Slow)
+            {
+                _view.SetFillCountDown(1f - e.RemainingPercent);
+            }
+        }
+
         private static string AccuracyToText(HitAccuracy a) => a switch
         {
             HitAccuracy.Perfect => "Perfect",
-            HitAccuracy.Great   => "Great",
-            HitAccuracy.Good    => "Cool",
-            _                   => ""
+            HitAccuracy.Great => "Great",
+            HitAccuracy.Good => "Cool",
+            _ => ""
         };
 
         public void Dispose()
@@ -69,7 +102,12 @@ namespace MagicTile.UI.Menu
             {
                 EventBus.Instance.Unsubscribe<ScoreChangedEvent>(OnScoreChanged);
                 EventBus.Instance.Unsubscribe<ComboChangedEvent>(OnComboChanged);
+                EventBus.Instance.Unsubscribe<BoosterEvent>(OnBoosterEvent);
+                EventBus.Instance.Unsubscribe<SlowStartEvent>(OnSlowStart);
+                EventBus.Instance.Unsubscribe<SlowEndEvent>(OnSlowEnd);
             }
+
+            _view.SlowBoosterButton.onClick.RemoveListener(OnSlowBoosterClicked);
         }
     }
 }

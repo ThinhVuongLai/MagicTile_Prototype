@@ -1,5 +1,6 @@
 using UnityEngine;
 using MagicTile.TileSystem;
+using MagicTile.Booster;
 
 namespace MagicTile.ServiceLocator
 {
@@ -33,6 +34,9 @@ namespace MagicTile.ServiceLocator
         {
             var uiManager = new UIManager();
             ServiceLocator.Register<IUiService>(uiManager);
+
+            var boosterManager = new BoosterManager();
+            ServiceLocator.Register<IBoosterService>(boosterManager);
         }
 
         private void OnDestroy()

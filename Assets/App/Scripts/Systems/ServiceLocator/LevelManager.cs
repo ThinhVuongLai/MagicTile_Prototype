@@ -66,11 +66,6 @@ namespace MagicTile.ServiceLocator
             _boardPresenter?.ResetLevel();
         }
 
-        public void SetSlowLevel(float duration = 5f)
-        {
-            _boardPresenter?.SetSlowLevel(duration);
-        }
-
         private void SpawnBackground(int backgroundIndex)
         {
             var info = _backgroundConfig?.GetByIndex(backgroundIndex);
