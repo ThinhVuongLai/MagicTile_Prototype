@@ -46,7 +46,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ace903a08da53c45908120ce22041fa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _length: 1
   _boxCollider: {fileID: 2480939710217304647}
   _spriteRenderer: {fileID: 97084693208890722}
 --- !u!61 &2480939710217304647
@@ -56,7 +55,7 @@ BoxCollider2D:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3661187404686549869}
-  m_Enabled: 1
+  m_Enabled: 0
   m_Density: 1
   m_Material: {fileID: 0}
   m_IncludeLayers:

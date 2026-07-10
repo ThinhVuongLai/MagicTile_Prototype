@@ -3,13 +3,10 @@ using UnityEngine;
 
 namespace MagicTile.TileSystem
 {
-    /// <summary>
-    /// Presenter liên kết TileModel và TileView. Chứa logic per-tile:
-    /// tính vị trí, kiểm tra miss, hit, và trigger mood action.
-    /// Plain C# class — không kế thừa MonoBehaviour.
-    /// </summary>
     public class TilePresenter
     {
+        private const float TOUCH_BOUND_SIZE = 0.4f;
+
         private readonly TileModel _model;
         private readonly TileView _view;
         private readonly float _visualSpeed;
@@ -30,6 +27,21 @@ namespace MagicTile.TileSystem
             _missThreshold = missThreshold;
             _hitThreshold = hitThreshold;
             _hitLineY = hitLineY;
+        }
+
+        public bool CheckHit(Vector2 worldPos)
+        {
+            if (_model.IsHit || _model.IsMissed || _model.IsHidden) return false;
+            if (_model.Type == TileType.Mood) return false;
+
+            Bounds touchBounds = new Bounds(worldPos, new Vector3(TOUCH_BOUND_SIZE, TOUCH_BOUND_SIZE, 1f));
+            Bounds spriteBounds = _view.GetSpriteBounds();
+
+            if (!touchBounds.Intersects(spriteBounds)) return false;
+
+            OnInput();
+
+            return true;
         }
 
         public void Tick(float currentTime)
@@ -57,6 +69,10 @@ namespace MagicTile.TileSystem
                     _model.SetMissed();
                     _model.SetState(TileState.Missed);
                     EventBus.Instance.Publish(new LoseEvent { TileTime = _model.Time, NoteIndex = _model.NoteIndex });
+                }
+                else
+                {
+                    _model.MarkHidden();
                 }
                 return;
             }

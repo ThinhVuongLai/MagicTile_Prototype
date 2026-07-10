@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using MagicTile.Events;
 using MagicTile.Audio;
 using MagicTile.Pool;
@@ -40,6 +41,9 @@ namespace MagicTile.TileSystem
         private LevelRunTimeConfig _levelConfig;
         private float _missThreshold;
         private float _hitThreshold;
+        private Camera _mainCamera;
+        private readonly Dictionary<int, TilePresenter> _dragTiles = new();
+        private const int MOUSE_POINTER_ID = -1;
 
         public event Action OnLevelFinished;
 
@@ -48,6 +52,7 @@ namespace MagicTile.TileSystem
             _poolService = ServiceLocator.ServiceLocator.Get<PoolService>();
             _audioService = ServiceLocator.ServiceLocator.Get<AudioService>();
             _levelService = ServiceLocator.ServiceLocator.Get<ILevelService>();
+            _mainCamera = Camera.main;
         }
 
         public void StartGame()
@@ -164,6 +169,8 @@ namespace MagicTile.TileSystem
                 }
             }
 
+            ProcessInput();
+
             if (_nextNoteIndex > 0 && _nextNoteIndex >= _beatMap.NoteCount && _tiles.Count <= 0)
             {
                 if (_loopLevel)
@@ -221,11 +228,178 @@ namespace MagicTile.TileSystem
             _tiles.Add(presenter);
         }
 
+        // --- Centralized Input Polling ---
+
+        private void ProcessInput()
+        {
+            // --- Pointer Down (Mouse) ---
+            if (Input.GetMouseButtonDown(0) && !IsPointerOverUI())
+            {
+                Vector2 worldPos = _mainCamera.ScreenToWorldPoint(Input.mousePosition);
+                ProcessPointerDown(MOUSE_POINTER_ID, worldPos);
+            }
+
+            // --- Pointer Down + Up (Touch) ---
+            for (int i = 0; i < Input.touchCount; i++)
+            {
+                Touch touch = Input.GetTouch(i);
+                if (IsPointerOverUI(touch.fingerId)) continue;
+
+                Vector2 worldPos = _mainCamera.ScreenToWorldPoint(touch.position);
+
+                if (touch.phase == TouchPhase.Began)
+                    ProcessPointerDown(touch.fingerId, worldPos);
+
+                if (touch.phase == TouchPhase.Ended || touch.phase == TouchPhase.Canceled)
+                    ProcessPointerUp(touch.fingerId);
+            }
+
+            // --- Mouse Up ---
+            if (Input.GetMouseButtonUp(0))
+                ProcessPointerUp(MOUSE_POINTER_ID);
+
+            // --- Drag Update (every frame) ---
+            ProcessDrags();
+        }
+
+        private void ProcessPointerDown(int pointerId, Vector2 worldPos)
+        {
+            int lane = GetLaneFromWorldX(worldPos.x);
+            if (lane < 0) return;
+
+            for (int i = 0; i < _tiles.Count; i++)
+            {
+                var tile = _tiles[i];
+                if (tile.Model.Lane != lane) continue;
+                if (tile.Model.IsHit || tile.Model.IsMissed || tile.Model.IsHidden) continue;
+
+                if (tile.CheckHit(worldPos))
+                {
+                    if (tile.View is IDragStrategy dragView)
+                    {
+                        dragView.StartDrag(worldPos);
+                        _dragTiles[pointerId] = tile;
+                    }
+                    break;
+                }
+            }
+        }
+
+        private void ProcessPointerUp(int pointerId)
+        {
+            if (_dragTiles.TryGetValue(pointerId, out var tile))
+            {
+                (tile.View as IDragStrategy)?.EndDrag();
+                _dragTiles.Remove(pointerId);
+            }
+        }
+
+        private void ProcessDrags()
+        {
+            if (_dragTiles.Count == 0) return;
+
+            var endedPointerIds = new List<int>();
+
+            foreach (var kvp in _dragTiles)
+            {
+                int pointerId = kvp.Key;
+                var tile = kvp.Value;
+
+                if (!IsPointerActive(pointerId, out Vector2 worldPos))
+                {
+                    (tile.View as IDragStrategy)?.EndDrag();
+                    endedPointerIds.Add(pointerId);
+                    continue;
+                }
+
+                if (!IsPointerOverTile(tile, worldPos))
+                {
+                    (tile.View as IDragStrategy)?.EndDrag();
+                    endedPointerIds.Add(pointerId);
+                    continue;
+                }
+
+                (tile.View as IDragStrategy)?.UpdateDrag(worldPos);
+            }
+
+            foreach (int id in endedPointerIds)
+                _dragTiles.Remove(id);
+        }
+
+        private bool IsPointerOverTile(TilePresenter tile, Vector2 worldPos)
+        {
+            if (tile.Model.Type == TileType.Zigzag)
+            {
+                RaycastHit2D hit = Physics2D.Raycast(worldPos, Vector2.zero);
+                return hit.collider != null && hit.collider.gameObject == tile.View.gameObject;
+            }
+
+            Bounds touchBounds = new Bounds(worldPos, new Vector3(0.4f, 0.4f, 1f));
+            Bounds spriteBounds = tile.View.GetSpriteBounds();
+            return touchBounds.Intersects(spriteBounds);
+        }
+
+        private bool IsPointerActive(int pointerId, out Vector2 worldPos)
+        {
+            if (pointerId == MOUSE_POINTER_ID)
+            {
+                worldPos = Input.GetMouseButton(0)
+                    ? (Vector2)_mainCamera.ScreenToWorldPoint(Input.mousePosition)
+                    : Vector2.zero;
+                return Input.GetMouseButton(0);
+            }
+
+            for (int i = 0; i < Input.touchCount; i++)
+            {
+                Touch touch = Input.GetTouch(i);
+                if (touch.fingerId == pointerId)
+                {
+                    worldPos = _mainCamera.ScreenToWorldPoint(touch.position);
+                    return touch.phase != TouchPhase.Ended && touch.phase != TouchPhase.Canceled;
+                }
+            }
+
+            worldPos = Vector2.zero;
+            return false;
+        }
+
+        private int GetLaneFromWorldX(float worldX)
+        {
+            float[] laneXPositions = _levelConfig.LaneXPositions;
+            int closestLane = -1;
+            float closestDist = float.MaxValue;
+            float laneWidth = (laneXPositions.Length >= 2)
+                ? Mathf.Abs(laneXPositions[1] - laneXPositions[0]) * 0.5f
+                : 1f;
+
+            for (int i = 0; i < laneXPositions.Length; i++)
+            {
+                float dist = Mathf.Abs(worldX - laneXPositions[i]);
+                if (dist < closestDist && dist <= laneWidth)
+                {
+                    closestDist = dist;
+                    closestLane = i + 1;
+                }
+            }
+            return closestLane;
+        }
+
+        private bool IsPointerOverUI(int fingerId = -1)
+        {
+            if (EventSystem.current == null) return false;
+            return fingerId >= 0
+                ? EventSystem.current.IsPointerOverGameObject(fingerId)
+                : EventSystem.current.IsPointerOverGameObject();
+        }
+
+        // --- Tile Management ---
+
         private void ClearAllTiles()
         {
             for (int i = 0; i < _tiles.Count; i++)
                 _poolService.Release(_tiles[i].View);
             _tiles.Clear();
+            _dragTiles.Clear();
             _nextNoteIndex = 0;
             _currentTime = 0f;
             _isCountdownPhase = false;

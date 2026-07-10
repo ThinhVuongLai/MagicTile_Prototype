@@ -1,10 +1,8 @@
 using UnityEngine;
-using UnityEngine.EventSystems;
-using MagicTile.ServiceLocator;
 
 namespace MagicTile.TileSystem
 {
-    public class LongTileView : TileView, IHitStrategy, IPointerUpHandler
+    public class LongTileView : TileView, IHitStrategy, IDragStrategy
     {
         [Header("Drag Completion")]
         [Tooltip("Offset from the top-center of the tile. 0 = top edge, 1 = 1 unit above.")]
@@ -18,12 +16,14 @@ namespace MagicTile.TileSystem
 
         [SerializeField] private SpriteRenderer _spriteRenderer;
 
-        [SerializeField] private bool _isPointerHolding;
         private BoxCollider2D _boxCollider;
+
+        private bool _isCompleteDrag = false;
+        private float _maxFill = 0;
+        private bool _isFinishFill = false;
 
         protected override void OnGetFromPoolInternal()
         {
-            _isPointerHolding = false;
             _boxCollider = GetComponent<BoxCollider2D>();
             if (_fillRenderer != null)
             {
@@ -33,6 +33,9 @@ namespace MagicTile.TileSystem
 
         public override void Configure(NoteData note, float visualSpeed, float[] laneXPositions)
         {
+            _isCompleteDrag = false;
+            _isFinishFill = false;
+
             float length = note.duration * visualSpeed * GlobalData.Instance.ScaleUnitForMoveTile;
             if (_spriteRenderer != null)
             {
@@ -44,6 +47,8 @@ namespace MagicTile.TileSystem
                 pos.y = size.y * 0.5f;
                 _spriteRenderer.transform.localPosition = pos;
             }
+
+            _maxFill = _spriteRenderer.size.y - _offsetYForMaxFill;
 
             if (_fillRenderer)
             {
@@ -59,48 +64,45 @@ namespace MagicTile.TileSystem
             PlayHit();
         }
 
-        public override void OnPointerDown(PointerEventData eventData)
+        public override Bounds GetSpriteBounds()
         {
-            var levelService = ServiceLocator.ServiceLocator.Get<ILevelService>();
-            if (levelService == null || !levelService.IsStatus(LevelStatus.Start))
-                return;
-
-            _isPointerHolding = true;
-
-            SetFillSize(Camera.main.ScreenToWorldPoint(eventData.position));
-
-            base.OnPointerDown(eventData);
+            if (_spriteRenderer != null) return _spriteRenderer.bounds;
+            if (_boxCollider != null) return _boxCollider.bounds;
+            return base.GetSpriteBounds();
         }
 
-        private void Update()
+        // --- IDragStrategy ---
+
+        public void StartDrag(Vector2 worldPos)
         {
-            if (!_isPointerHolding) return;
+            SetFillSize(worldPos);
+        }
+
+        public void UpdateDrag(Vector2 worldPos)
+        {
+            if (_isCompleteDrag)
+                return;
+
             if (Mathf.Approximately(Time.timeScale, 0f)) return;
 
-            Vector3 fingerWorldPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            SetFillSize(worldPos);
 
-            SetFillSize(fingerWorldPos);
+            float thresholdY = GetTopEdgeY() + _dragCompletionOffset;
 
-            float thresholdY = GetTopCenterY() + _dragCompletionOffset;
-
-            if (fingerWorldPos.y >= thresholdY)
+            if (worldPos.y >= thresholdY)
             {
-                _isPointerHolding = false;
-
+                _isCompleteDrag = true;
                 Presenter?.OnDragComplete();
             }
         }
 
-        public void OnPointerUp(PointerEventData eventData)
+        public void EndDrag()
         {
-            _isPointerHolding = false;
-        }
-
-        private float GetTopCenterY()
-        {
-            if (_boxCollider != null)
-                return _boxCollider.bounds.max.y;
-            return transform.position.y;
+            if (_isFinishFill && !_isCompleteDrag)
+            {
+                _isCompleteDrag = true;
+                Presenter?.OnDragComplete();
+            }
         }
 
         private void AdjustColliderToSprite()
@@ -114,17 +116,20 @@ namespace MagicTile.TileSystem
 
         private void SetFillSize(Vector3 fingerWorldPos)
         {
-            if (_fillRenderer == null) return;
+            if (_fillRenderer == null || _isFinishFill) return;
 
             Vector3 localPos = transform.InverseTransformPoint(fingerWorldPos);
 
-            float fillSizeY = localPos.y + _offsetFromTouch /* - _startFillY */;
+            float fillSizeY = localPos.y + _offsetFromTouch;
 
-            float maxFill = _spriteRenderer.size.y - _offsetYForMaxFill;
-
-            fillSizeY = Mathf.Clamp(fillSizeY, 0, maxFill);
+            fillSizeY = Mathf.Clamp(fillSizeY, 0, _maxFill);
 
             if (fillSizeY < _fillRenderer.size.y) return;
+
+            if (fillSizeY >= _maxFill)
+            {
+                _isFinishFill = true;
+            }
 
             var size = _fillRenderer.size;
             size.y = fillSizeY;

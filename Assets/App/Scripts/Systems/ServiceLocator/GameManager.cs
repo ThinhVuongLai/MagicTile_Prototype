@@ -8,6 +8,8 @@ namespace MagicTile.ServiceLocator
         private void Awake()
         {
             Init();
+
+            Application.targetFrameRate = 60;
         }
 
         private void Start()

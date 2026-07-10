@@ -1,17 +1,9 @@
 using UnityEngine;
-using UnityEngine.EventSystems;
 using MagicTile.Pool;
-using MagicTile.ServiceLocator;
 
 namespace MagicTile.TileSystem
 {
-    /// <summary>
-    /// MonoBehaviour view cho 1 tile. Cập nhật vị trí và nhận input tap.
-    /// Subclasses: ShortTileView, LongTileView, ZigzagTileView, MoodTileView.
-    /// MoodTileView không có hình, không di chuyển, không cần Collider2D.
-    /// Các subclass khác cần Collider2D + EventSystem + Physics2DRaycaster.
-    /// </summary>
-    public class TileView : MonoBehaviour, IPointerDownHandler, IPoolable
+    public class TileView : MonoBehaviour, IPoolable
     {
         protected TilePresenter Presenter { get; private set; }
 
@@ -41,9 +33,6 @@ namespace MagicTile.TileSystem
             transform.position = pos;
         }
 
-        /// <summary>
-        /// Cấu hình view dựa trên NoteData. Override trong subclass cho từng TileType.
-        /// </summary>
         public virtual void Configure(NoteData note, float visualSpeed, float[] laneXPositions)
         {
         }
@@ -54,6 +43,15 @@ namespace MagicTile.TileSystem
         public void Hide()
         {
             gameObject.SetActive(false);
+        }
+
+        public virtual Bounds GetSpriteBounds()
+        {
+            var sr = GetComponent<SpriteRenderer>();
+            if (sr != null) return sr.bounds;
+            var col = GetComponent<Collider2D>();
+            if (col != null) return col.bounds;
+            return new Bounds(transform.position, Vector3.zero);
         }
 
         // --- IPoolable ---
@@ -70,17 +68,6 @@ namespace MagicTile.TileSystem
         }
 
         protected virtual void OnGetFromPoolInternal() { }
-
-        // --- Input ---
-
-        public virtual void OnPointerDown(PointerEventData eventData)
-        {
-            var levelService = ServiceLocator.ServiceLocator.Get<ILevelService>();
-            if (levelService == null || !levelService.IsStatus(LevelStatus.Start))
-                return;
-
-            Presenter?.OnInput();
-        }
 
         public virtual float GetTopEdgeY()
         {

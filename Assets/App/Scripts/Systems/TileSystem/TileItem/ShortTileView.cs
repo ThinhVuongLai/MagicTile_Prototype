@@ -33,6 +33,12 @@ namespace MagicTile.TileSystem
             model.MarkHidden();
         }
 
+        public override Bounds GetSpriteBounds()
+        {
+            if (_spriteRenderer != null) return _spriteRenderer.bounds;
+            return base.GetSpriteBounds();
+        }
+
         public override float GetTopEdgeY()
         {
             return transform.position.y + _spriteRenderer.size.y;

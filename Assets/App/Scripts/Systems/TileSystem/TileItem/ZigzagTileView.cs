@@ -1,16 +1,17 @@
 using UnityEngine;
-using UnityEngine.EventSystems;
 using System.Collections.Generic;
-using MagicTile.ServiceLocator;
 
 namespace MagicTile.TileSystem
 {
     [RequireComponent(typeof(NoteZigzagMesh))]
-    public class ZigzagTileView : TileView, IHitStrategy, IPointerUpHandler
+    public class ZigzagTileView : TileView, IHitStrategy, IDragStrategy
     {
         [Header("Drag Completion")]
         [Tooltip("Offset from the top-center of the tile. 0 = top edge, 1 = 1 unit above.")]
         [SerializeField] private float _dragCompletionOffset = 0f;
+
+        [Header("Check Hit")]
+        [SerializeField] private SpriteRenderer _checkHitSpriteRenderer;
 
         [Header("Fill")]
         [SerializeField] private NoteZigzagMesh _fillMesh;
@@ -20,7 +21,6 @@ namespace MagicTile.TileSystem
         private static readonly int RevealYID = Shader.PropertyToID("_RevealY");
 
         private NoteZigzagMesh _segment;
-        private bool _isPointerHolding;
         private float _currentRevealY;
         private MaterialPropertyBlock _fillPropertyBlock;
         private MeshRenderer _fillMeshRenderer;
@@ -28,10 +28,12 @@ namespace MagicTile.TileSystem
 
         private float _maxY = 0;
 
+        private bool _isCompleteDrag = false;
+        private bool _finishFill = false;
+
         protected override void OnGetFromPoolInternal()
         {
             _segment = GetComponent<NoteZigzagMesh>();
-            _isPointerHolding = false;
             _currentRevealY = 0f;
             _polygonCollider = GetComponent<PolygonCollider2D>();
 
@@ -49,6 +51,9 @@ namespace MagicTile.TileSystem
 
         public override void Configure(NoteData note, float visualSpeed, float[] laneXPositions)
         {
+            _isCompleteDrag = false;
+            _finishFill = false;
+
             if (_segment == null)
                 _segment = GetComponent<NoteZigzagMesh>();
 
@@ -83,46 +88,60 @@ namespace MagicTile.TileSystem
                 _fillPropertyBlock.SetFloat(RevealYID, 0f);
                 _fillMeshRenderer.SetPropertyBlock(_fillPropertyBlock);
             }
-            AdjustColliderToMesh();
+
+            UpdateCheckHitSpriteRenderer();
+            _polygonCollider.enabled = false;
         }
 
         public void Hit(TileModel model)
         {
             model.SetState(TileState.Swiping);
             PlayHit();
+
+            _polygonCollider.enabled = true;
+            AdjustColliderToMesh();
         }
 
-        public override void OnPointerDown(PointerEventData eventData)
+        public override Bounds GetSpriteBounds()
         {
-            var levelService = ServiceLocator.ServiceLocator.Get<ILevelService>();
-            if (levelService == null || !levelService.IsStatus(LevelStatus.Start))
+            if (_checkHitSpriteRenderer != null) return _checkHitSpriteRenderer.bounds;
+            return base.GetSpriteBounds();
+        }
+
+        // --- IDragStrategy ---
+
+        public void StartDrag(Vector2 worldPos)
+        {
+            SetFillSize(worldPos);
+        }
+
+        public void UpdateDrag(Vector2 worldPos)
+        {
+            if (_isCompleteDrag)
                 return;
 
-            _isPointerHolding = true;
-            SetFillSize(Camera.main.ScreenToWorldPoint(eventData.position));
-            base.OnPointerDown(eventData);
-        }
-
-        private void Update()
-        {
-            if (!_isPointerHolding) return;
             if (Mathf.Approximately(Time.timeScale, 0f)) return;
 
-            Vector3 fingerWorldPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-            SetFillSize(fingerWorldPos);
+            SetFillSize(worldPos);
 
             float thresholdY = GetTopCenterY() + _dragCompletionOffset;
 
-            if (fingerWorldPos.y >= thresholdY)
+            if (worldPos.y >= thresholdY)
             {
-                _isPointerHolding = false;
+                _isCompleteDrag = true;
+
                 Presenter?.OnDragComplete();
             }
         }
 
-        public void OnPointerUp(PointerEventData eventData)
+        public void EndDrag()
         {
-            _isPointerHolding = false;
+            if (_finishFill && !_isCompleteDrag)
+            {
+                _isCompleteDrag = true;
+
+                Presenter?.OnDragComplete();
+            }
         }
 
         private float GetTopCenterY()
@@ -134,17 +153,25 @@ namespace MagicTile.TileSystem
 
         private void SetFillSize(Vector3 fingerWorldPos)
         {
-            if (_fillMesh == null || _fillMeshRenderer == null) return;
+            if (_fillMesh == null || _fillMeshRenderer == null && _finishFill) return;
 
             Vector3 localPos = transform.InverseTransformPoint(fingerWorldPos);
 
             float revealY = localPos.y + _offsetFromTouch;
 
-            float maxFill = _fillMesh.points[_fillMesh.points.Count - 1].y - _offsetYForMaxFill;
+            float maxFill = _fillMesh.GetLastPointPositionY() - _offsetYForMaxFill;
 
             revealY = Mathf.Clamp(revealY, 0, maxFill);
 
-            if (revealY <= _currentRevealY) return;
+            if (revealY <= _currentRevealY)
+            {
+                return;
+            }
+
+            if (revealY >= maxFill)
+            {
+                _finishFill = true;
+            }
 
             _currentRevealY = revealY;
             _fillPropertyBlock.SetFloat(RevealYID, revealY);
@@ -184,6 +211,22 @@ namespace MagicTile.TileSystem
         public override float GetTopEdgeY()
         {
             return transform.position.y + _maxY;
+        }
+
+        private void UpdateCheckHitSpriteRenderer()
+        {
+            if (_checkHitSpriteRenderer == null)
+                return;
+
+            float targetHeight = _segment.GetPointPositionY(1) / 2f;
+
+            Vector2 targetSize = _checkHitSpriteRenderer.size;
+            targetSize.y = targetHeight;
+            _checkHitSpriteRenderer.size = targetSize;
+
+            Vector3 targetLocalPosition = _checkHitSpriteRenderer.transform.localPosition;
+            targetLocalPosition.y = targetHeight / 2f;
+            _checkHitSpriteRenderer.transform.localPosition = targetLocalPosition;
         }
     }
 }

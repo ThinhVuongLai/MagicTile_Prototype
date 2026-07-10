@@ -253,7 +253,6 @@ MonoBehaviour:
   _offsetYForMaxFill: 0.3
   _offsetFromTouch: 0.2
   _spriteRenderer: {fileID: 2758532540992343286}
-  _isPointerHolding: 0
 --- !u!61 &8564099809900202613
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -261,7 +260,7 @@ BoxCollider2D:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 9189946975100968555}
-  m_Enabled: 1
+  m_Enabled: 0
   m_Density: 1
   m_Material: {fileID: 0}
   m_IncludeLayers:

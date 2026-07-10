@@ -5,7 +5,8 @@ using UnityEngine;
 public class NoteZigzagMesh : MonoBehaviour
 {
     [Header("Danh sách điểm (local space), điểm đầu -> điểm cuối")]
-    public List<Vector3> points = new List<Vector3>
+    [SerializeField]
+    private List<Vector3> points = new List<Vector3>
     {
         new Vector3(0, 0, 0),
         new Vector3(0.5f, 1.5f, 0),
@@ -14,17 +15,17 @@ public class NoteZigzagMesh : MonoBehaviour
     };
 
     [Header("Độ rộng note (luôn nằm ngang)")]
-    public float width = 1f;
+    [SerializeField] private float width = 1f;
 
     [Header("Kích thước cap tính theo trục Y (world units)")]
-    public float capStartLength = 0.3f;
-    public float capEndLength = 0.3f;
+    [SerializeField] private float capStartLength = 0.3f;
+    [SerializeField] private float capEndLength = 0.3f;
 
     [Header("4 mốc UV (V), tăng dần 0->1")]
-    public float uvP0 = 0f;
-    public float uvP1 = 0.15f;
-    public float uvP2 = 0.85f;
-    public float uvP3 = 1f;
+    [SerializeField] private float uvP0 = 0f;
+    [SerializeField] private float uvP1 = 0.15f;
+    [SerializeField] private float uvP2 = 0.85f;
+    [SerializeField] private float uvP3 = 1f;
 
     private Mesh mesh;
     private MeshFilter mf;
@@ -168,6 +169,22 @@ public class NoteZigzagMesh : MonoBehaviour
         mesh.uv = uv;
         mesh.RecalculateNormals();
         mesh.RecalculateBounds();
+    }
+
+    public float GetPointPositionY(int pointIndex)
+    {
+        if (points == null || points.Count <= 0 || pointIndex >= points.Count)
+            return 0;
+
+        return points[pointIndex].y;
+    }
+
+    public float GetLastPointPositionY()
+    {
+        if (points == null || points.Count <= 0)
+            return 0;
+
+        return points[^1].y;
     }
 
 #if UNITY_EDITOR
