@@ -4,7 +4,7 @@ using UnityEngine.UI;
 
 namespace MagicTile.UI.Menu
 {
-    public class IngameMenuView : MonoBehaviour
+    public class IngameMenuView : CanvasBase
     {
         [SerializeField] private RectTransform _progressFill;
         [SerializeField] private RectTransform _progressBarArea;
@@ -26,11 +26,18 @@ namespace MagicTile.UI.Menu
         private LevelScoreMilestonePrefabData[] _milestonePrefabs;
         private LevelScoreMilestone[] _milestoneInstances;
 
-        private void Awake()
+        public override ICanvasPresenter FirstSpawn()
         {
-            _progressMaxWidth = _progressFill.rect.width;
+            IngameMenuPresenter ingameMenuPresenter = new IngameMenuPresenter(this);
 
-            _replayButton.onClick.AddListener(OnClickReplayButton);
+            if (ingameMenuPresenter is ICanvasPresenter presenter)
+            {
+                return presenter;
+            }
+            else
+            {
+                return null;
+            }
         }
 
         public void Init(MilestoneData[] milestoneData, LevelScoreMilestonePrefabData[] milestonePrefabs)
@@ -46,6 +53,11 @@ namespace MagicTile.UI.Menu
 
             DestroyMilestones();
             SpawnMilestones();
+        }
+
+        public void OnShow()
+        {
+            _replayButton.onClick.AddListener(OnClickReplayButton);
         }
 
         public void ResetMenu()

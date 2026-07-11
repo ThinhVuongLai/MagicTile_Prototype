@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace MagicTile.UI.Menu
 {
-    public class IngameMenuPresenter
+    public class IngameMenuPresenter : ICanvasPresenter
     {
         private readonly IngameMenuView _view;
         private readonly MilestoneData[] _milestones;
@@ -26,15 +26,37 @@ namespace MagicTile.UI.Menu
 
             _view.Init(_milestones, prefabs);
 
-            EventBus.Instance.Subscribe<ScoreChangedEvent>(OnScoreChanged);
-            EventBus.Instance.Subscribe<ComboChangedEvent>(OnComboChanged);
-            EventBus.Instance.Subscribe<BoosterEvent>(OnBoosterEvent);
-            EventBus.Instance.Subscribe<SlowStartEvent>(OnSlowStart);
-            EventBus.Instance.Subscribe<SlowEndEvent>(OnSlowEnd);
-            EventBus.Instance.Subscribe<FinishRunMissTileEvent>(OnFinishRunMissTile);
-            EventBus.Instance.Subscribe<ReplayLevel>(OnReplayLevel);
-
             _view.SlowBoosterButton.onClick.AddListener(OnSlowBoosterClicked);
+        }
+
+        public void Init(params object[] parameters)
+        {
+            if (EventBus.HasInstance)
+            {
+                EventBus.Instance.Subscribe<ScoreChangedEvent>(OnScoreChanged);
+                EventBus.Instance.Subscribe<ComboChangedEvent>(OnComboChanged);
+                EventBus.Instance.Subscribe<BoosterEvent>(OnBoosterEvent);
+                EventBus.Instance.Subscribe<SlowStartEvent>(OnSlowStart);
+                EventBus.Instance.Subscribe<SlowEndEvent>(OnSlowEnd);
+                EventBus.Instance.Subscribe<FinishRunMissTileEvent>(OnFinishRunMissTile);
+                EventBus.Instance.Subscribe<ReplayLevel>(OnReplayLevel);
+            }
+
+            _view.OnShow();
+        }
+
+        public void Hide()
+        {
+            if (EventBus.HasInstance)
+            {
+                EventBus.Instance.Unsubscribe<ScoreChangedEvent>(OnScoreChanged);
+                EventBus.Instance.Unsubscribe<ComboChangedEvent>(OnComboChanged);
+                EventBus.Instance.Unsubscribe<BoosterEvent>(OnBoosterEvent);
+                EventBus.Instance.Unsubscribe<SlowStartEvent>(OnSlowStart);
+                EventBus.Instance.Unsubscribe<SlowEndEvent>(OnSlowEnd);
+                EventBus.Instance.Unsubscribe<FinishRunMissTileEvent>(OnFinishRunMissTile);
+                EventBus.Instance.Unsubscribe<ReplayLevel>(OnReplayLevel);
+            }
         }
 
         private void OnScoreChanged(ScoreChangedEvent e)
@@ -112,17 +134,6 @@ namespace MagicTile.UI.Menu
 
         public void Dispose()
         {
-            if (EventBus.HasInstance)
-            {
-                EventBus.Instance.Unsubscribe<ScoreChangedEvent>(OnScoreChanged);
-                EventBus.Instance.Unsubscribe<ComboChangedEvent>(OnComboChanged);
-                EventBus.Instance.Unsubscribe<BoosterEvent>(OnBoosterEvent);
-                EventBus.Instance.Unsubscribe<SlowStartEvent>(OnSlowStart);
-                EventBus.Instance.Unsubscribe<SlowEndEvent>(OnSlowEnd);
-                EventBus.Instance.Unsubscribe<FinishRunMissTileEvent>(OnFinishRunMissTile);
-                EventBus.Instance.Unsubscribe<ReplayLevel>(OnReplayLevel);
-            }
-
             _view.SlowBoosterButton.onClick.RemoveListener(OnSlowBoosterClicked);
         }
 
@@ -130,15 +141,15 @@ namespace MagicTile.UI.Menu
         {
             var levelManager = ServiceLocator.ServiceLocator.Get<ILevelService>();
 
-        if (levelManager != null)
-        {
-            levelManager.ReplayLevel();
-        }
+            if (levelManager != null)
+            {
+                levelManager.ReplayLevel();
+            }
 #if UNITY_EDITOR
-        else
-        {
-            Debug.LogError("Not Replay Level by not found LevelManager");
-        }
+            else
+            {
+                Debug.LogError("Not Replay Level by not found LevelManager");
+            }
 #endif
         }
 

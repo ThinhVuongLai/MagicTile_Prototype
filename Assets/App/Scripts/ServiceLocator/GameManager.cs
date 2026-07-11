@@ -2,6 +2,7 @@ using UnityEngine;
 using MagicTile.TileSystem;
 using MagicTile.Booster;
 using MagicTile.CameraEffect;
+using MagicTile.UI;
 
 namespace MagicTile.ServiceLocator
 {
@@ -46,6 +47,8 @@ namespace MagicTile.ServiceLocator
 
             var levelSevice = ServiceLocator.Get<ILevelService>();
             levelSevice.InitLevel(0);
+
+            ServiceLocator.Get<CanvasManager>()?.Spawn(UIName.IngameMenu, null);
         }
 
         public void Init()

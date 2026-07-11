@@ -12,6 +12,7 @@ using MagicTile.ServiceLocator;
 using Cysharp.Threading.Tasks;
 using System.Threading;
 using MagicTile.Background;
+using MagicTile.GlobalData;
 
 namespace MagicTile.TileSystem
 {
@@ -120,8 +121,6 @@ namespace MagicTile.TileSystem
 
         public void InitLevel(Transform backgroundContainer, Transform lineContainer)
         {
-            IngameMenuPresenter ingameMenuPresenter = new IngameMenuPresenter(_ingameMenuPrefab);
-
             var levelService = ServiceLocator.ServiceLocator.Get<ILevelService>();
             var levelInfo = levelService?.CurrentLevelConfig;
 
