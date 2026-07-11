@@ -22,3 +22,5 @@ MonoBehaviour:
   - Type: 3
     Prefab: {fileID: 3929938234236409100, guid: ed96c8e2f2a7f8e4d97b59140ef96736, type: 3}
   _missPrefab: {fileID: 6541639372257651950, guid: 3bf5ca426bc86684e974cdf9e98c8702, type: 3}
+  _startTileItem: {fileID: 1690826482733948950, guid: daa6367e4c22ded4ab8bd7571d82c0de, type: 3}
+  _replayTileItem: {fileID: 9022387953022073520, guid: fcbe514dd11f1b842b74d03de2964324, type: 3}

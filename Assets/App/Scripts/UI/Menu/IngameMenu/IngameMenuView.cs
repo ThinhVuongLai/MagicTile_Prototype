@@ -11,10 +11,17 @@ namespace MagicTile.UI.Menu
         [SerializeField] private TextMeshProUGUI _totalScoreText;
         [SerializeField] private TextMeshProUGUI _accuracyText;
         [SerializeField] private TextMeshProUGUI _multiplierText;
+
+        [Header("Slow Booster")]
         [SerializeField] private Button _slowBoosterButton;
         [SerializeField] private Image _fillCountDown;
 
+        [Header("Replay")]
+        [SerializeField] private GameObject _replayObject;
+        [SerializeField] private Button _replayButton;
+
         private float _progressMaxWidth;
+        private IngameMenuPresenter _ingameMenuPresenter;
         private MilestoneData[] _milestoneData;
         private LevelScoreMilestonePrefabData[] _milestonePrefabs;
         private LevelScoreMilestone[] _milestoneInstances;
@@ -22,6 +29,8 @@ namespace MagicTile.UI.Menu
         private void Awake()
         {
             _progressMaxWidth = _progressFill.rect.width;
+
+            _replayButton.onClick.AddListener(OnClickReplayButton);
         }
 
         public void Init(MilestoneData[] milestoneData, LevelScoreMilestonePrefabData[] milestonePrefabs)
@@ -31,14 +40,34 @@ namespace MagicTile.UI.Menu
 
             _progressMaxWidth = _progressFill.rect.width;
 
+            _replayObject.SetActive(false);
+
+            ResetMenu();
+
+            DestroyMilestones();
+            SpawnMilestones();
+        }
+
+        public void ResetMenu()
+        {
             SetProgress(0f);
             SetTotalScore(0);
             SetAccuracy("");
             SetMultiplier("", false);
             HideFillCountDown();
+        }
 
-            DestroyMilestones();
-            SpawnMilestones();
+        private void OnDestroy()
+        {
+            _ingameMenuPresenter = null;
+
+            _milestoneData = null;
+            _milestonePrefabs = null;
+        }
+
+        public void SetPresenter(IngameMenuPresenter ingameMenuPresenter)
+        {
+            _ingameMenuPresenter = ingameMenuPresenter;
         }
 
         public void EnableSlowBoosterButton(bool enable)
@@ -146,6 +175,18 @@ namespace MagicTile.UI.Menu
         public void HideFillCountDown()
         {
             _fillCountDown.gameObject.SetActive(false);
+        }
+
+        private void OnClickReplayButton()
+        {
+            _ingameMenuPresenter?.OnClickReplayNutton();
+
+            _replayObject.SetActive(false);
+        }
+
+        public void ShowReplayObject()
+        {
+            _replayObject.SetActive(true);
         }
     }
 }

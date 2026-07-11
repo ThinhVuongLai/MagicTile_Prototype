@@ -1,6 +1,7 @@
 using MagicTile.Booster;
 using MagicTile.Events;
 using MagicTile.ServiceLocator;
+using UnityEngine;
 
 namespace MagicTile.UI.Menu
 {
@@ -15,6 +16,8 @@ namespace MagicTile.UI.Menu
         {
             _view = view;
 
+            _view.SetPresenter(this);
+
             var levelService = ServiceLocator.ServiceLocator.Get<ServiceLocator.ILevelService>();
             var configManager = ServiceLocator.ServiceLocator.Get<ServiceLocator.ConfigManager>();
 
@@ -28,6 +31,8 @@ namespace MagicTile.UI.Menu
             EventBus.Instance.Subscribe<BoosterEvent>(OnBoosterEvent);
             EventBus.Instance.Subscribe<SlowStartEvent>(OnSlowStart);
             EventBus.Instance.Subscribe<SlowEndEvent>(OnSlowEnd);
+            EventBus.Instance.Subscribe<FinishRunMissTileEvent>(OnFinishRunMissTile);
+            EventBus.Instance.Subscribe<ReplayLevel>(OnReplayLevel);
 
             _view.SlowBoosterButton.onClick.AddListener(OnSlowBoosterClicked);
         }
@@ -63,6 +68,10 @@ namespace MagicTile.UI.Menu
 
         private void OnSlowBoosterClicked()
         {
+            var LevelManager = ServiceLocator.ServiceLocator.Get<ILevelService>();
+            if (LevelManager != null && !LevelManager.IsStatus(LevelStatus.Start))
+                return;
+
             var boosterService = ServiceLocator.ServiceLocator.Get<IBoosterService>();
             boosterService?.RunBooster(BoosterType.Slow);
 
@@ -88,6 +97,11 @@ namespace MagicTile.UI.Menu
             }
         }
 
+        private void OnFinishRunMissTile(FinishRunMissTileEvent e)
+        {
+            _view.ShowReplayObject();
+        }
+
         private static string AccuracyToText(HitAccuracy a) => a switch
         {
             HitAccuracy.Perfect => "Perfect",
@@ -105,9 +119,32 @@ namespace MagicTile.UI.Menu
                 EventBus.Instance.Unsubscribe<BoosterEvent>(OnBoosterEvent);
                 EventBus.Instance.Unsubscribe<SlowStartEvent>(OnSlowStart);
                 EventBus.Instance.Unsubscribe<SlowEndEvent>(OnSlowEnd);
+                EventBus.Instance.Unsubscribe<FinishRunMissTileEvent>(OnFinishRunMissTile);
+                EventBus.Instance.Unsubscribe<ReplayLevel>(OnReplayLevel);
             }
 
             _view.SlowBoosterButton.onClick.RemoveListener(OnSlowBoosterClicked);
+        }
+
+        public void OnClickReplayNutton()
+        {
+            var levelManager = ServiceLocator.ServiceLocator.Get<ILevelService>();
+
+        if (levelManager != null)
+        {
+            levelManager.ReplayLevel();
+        }
+#if UNITY_EDITOR
+        else
+        {
+            Debug.LogError("Not Replay Level by not found LevelManager");
+        }
+#endif
+        }
+
+        private void OnReplayLevel(ReplayLevel replayLevel)
+        {
+            _view.ResetMenu();
         }
     }
 }

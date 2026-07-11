@@ -9,16 +9,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8e324fe334ad4d543bca98fc82859c64, type: 3}
-  m_Name: LevelRunTimeConfig
+  m_Script: {fileID: 11500000, guid: 904ed4bca6f51714d9be70710a59858e, type: 3}
+  m_Name: GlobalData
   m_EditorClassIdentifier: 
-  _spawnLeadTime: 3
-  _missThreshold: 0
-  _hitThreshold: 0
-  _hitLineY: -2
-  _laneXPositions:
-  - -4.5
-  - -1.5
-  - 1.5
-  - 4.5
-  _seekDuration: 0.5
+  _scaleUnitForMoveTile: 4
+  _autoHideOffsetBelowScreen: 0.5
+  _loopRestartDelay: 2
