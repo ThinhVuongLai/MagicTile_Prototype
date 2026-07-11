@@ -24,6 +24,7 @@ namespace MagicTile.Background
     {
         [SerializeField] private SpriteRenderer _spriteRenderer;
         [SerializeField] private List<LevelBackgroundSpriteInfor> _backgroundSprites;
+        [SerializeField] private GameObject _vfxObject;
 
         private readonly float _punchDuration = 0.2f;
         private readonly float _punchScaleAmount = 0.15f;
@@ -44,6 +45,14 @@ namespace MagicTile.Background
             {
                 Debug.LogWarning($"LevelBackgroundView: No sprite found for color {color}.");
             }
+        }
+
+        public void SetShowVfx(bool isShow)
+        {
+            if (_vfxObject == null)
+                return;
+
+            _vfxObject.SetActive(isShow);
         }
 
         public void PunchScale()

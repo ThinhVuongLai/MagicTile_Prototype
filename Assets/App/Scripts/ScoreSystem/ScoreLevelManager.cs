@@ -10,24 +10,12 @@ namespace MagicTile.ScoreSystem
     /// </summary>
     public class ScoreLevelManager : Singleton<ScoreLevelManager>
     {
-        // --- Combo tiers: (minCombo, multiplier) ---
-        private static readonly (int min, float mult)[] ComboTiers =
-        {
-            (0,  1.0f),
-            (5,  2.0f),
-            (10, 3.0f),
-            (20, 5.0f)
-        };
-
         // --- State ---
         private int _currentScore;
         private int _currentCombo;
-        private int _maxCombo;
-
         // --- Public read-only properties ---
         public int CurrentScore => _currentScore;
         public int CurrentCombo => _currentCombo;
-        public int MaxCombo => _maxCombo;
 
         private ScoreLevelManager()
         {
@@ -41,14 +29,14 @@ namespace MagicTile.ScoreSystem
         {
             _currentScore = 0;
             _currentCombo = 0;
-            _maxCombo = 0;
         }
 
         private void OnTileHit(TileHitEvent e)
         {
-            _currentCombo++;
-            if (_currentCombo > _maxCombo)
-                _maxCombo = _currentCombo;
+            if (e.Accuracy == HitAccuracy.Perfect)
+                _currentCombo++;
+            else
+                _currentCombo = 0;
 
             float comboMult = GetComboMultiplier(_currentCombo);
             int addedScore = Mathf.RoundToInt(e.BasePoints * comboMult);
@@ -74,10 +62,7 @@ namespace MagicTile.ScoreSystem
 
         private static float GetComboMultiplier(int combo)
         {
-            for (int i = ComboTiers.Length - 1; i >= 0; i--)
-                if (combo >= ComboTiers[i].min)
-                    return ComboTiers[i].mult;
-            return 1.0f;
+                return combo;
         }
 
         protected override void OnDestroy()

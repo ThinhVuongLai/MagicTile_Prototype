@@ -200,10 +200,16 @@ namespace MagicTile.TileSystem
 
         private HitAccuracy CalculateAccuracy()
         {
-            float absPos = Mathf.Abs(_model.Position);
-            if (absPos <= _hitThreshold * 0.33f) return HitAccuracy.Perfect;
-            if (absPos <= _hitThreshold * 0.66f) return HitAccuracy.Great;
-            if (absPos <= _hitThreshold) return HitAccuracy.Good;
+            Camera cam = Camera.main;
+            float screenTop = cam.transform.position.y + cam.orthographicSize;
+            float screenHeight = cam.orthographicSize * 2f;
+            float tileWorldY = _hitLineY + _model.Position;
+            float distanceFromTop = screenTop - tileWorldY;
+            float percentFromTop = distanceFromTop / screenHeight;
+
+            if (percentFromTop <= 0.75f) return HitAccuracy.Perfect;
+            if (percentFromTop <= 0.90f) return HitAccuracy.Great;
+            if (percentFromTop <= 1.0f) return HitAccuracy.Good;
             return HitAccuracy.Miss;
         }
 

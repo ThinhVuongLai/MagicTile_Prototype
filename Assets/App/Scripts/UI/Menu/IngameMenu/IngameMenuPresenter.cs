@@ -84,7 +84,7 @@ namespace MagicTile.UI.Menu
         private void UpdateMultiplierVisibility()
         {
             bool show = _latestAccuracy == HitAccuracy.Perfect && _latestMultiplier > 1.0f;
-            string text = show ? $"x{_latestMultiplier:F1}" : "";
+            string text = show ? $"x{(int)_latestMultiplier}" : "";
             _view.SetMultiplier(text, show);
         }
 

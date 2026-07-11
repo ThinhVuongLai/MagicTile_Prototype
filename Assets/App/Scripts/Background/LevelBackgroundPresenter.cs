@@ -13,6 +13,8 @@ namespace MagicTile.Background
         {
             _view = view;
             EventBus.Instance.Subscribe<MoodTriggeredEvent>(OnMoodTriggered);
+
+            _view.SetShowVfx(false);
         }
 
         ~LevelBackgroundPresenter()
@@ -43,6 +45,7 @@ namespace MagicTile.Background
                     if (Enum.TryParse(meta.value, true, out BackgroundColor color))
                     {
                         _view.SetSpriteByColor(color);
+                        _view.SetShowVfx(true);
                         _view.PunchScale();
                     }
                     else
