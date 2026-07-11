@@ -53,9 +53,6 @@ namespace MagicTile.ServiceLocator
 
         public void Init()
         {
-            var uiManager = new UIManager();
-            ServiceLocator.Register<IUiService>(uiManager);
-
             var boosterManager = new BoosterManager();
             ServiceLocator.Register<IBoosterService>(boosterManager);
         }
@@ -64,7 +61,6 @@ namespace MagicTile.ServiceLocator
         {
             _cameraShakePresenter?.Dispose();
             ServiceLocator.Unregister<ILevelService>();
-            ServiceLocator.Unregister<IUiService>();
         }
     }
 }

@@ -29,9 +29,6 @@ namespace MagicTile.TileSystem
         [Header("Level Lines")]
         [SerializeField] private GameObject _levelLinePrefab;
 
-        [Header("UI")]
-        [SerializeField] private IngameMenuView _ingameMenuPrefab;
-
         // --- Runtime ---
 
         private BeatMapModel _beatMap;
