@@ -49,7 +49,7 @@ namespace MagicTile.TileSystem
 
             if (!Intersects2D(touchBounds, spriteBounds)) return false;
 
-            OnInput();
+            OnInput(worldPos);
 
             return true;
         }
@@ -151,7 +151,7 @@ namespace MagicTile.TileSystem
             _view.AddPositionY(addValue);
         }
 
-        public void OnInput()
+        public void OnInput(Vector2 touchPos)
         {
             if (_model.IsHit || _model.IsMissed || _model.IsHidden)
                 return;
@@ -171,7 +171,8 @@ namespace MagicTile.TileSystem
                 Lane = _model.Lane,
                 BasePoints = 2,
                 IsDragComplete = false,
-                Accuracy = CalculateAccuracy()
+                Accuracy = CalculateAccuracy(),
+                TouchPosition = touchPos
             });
 
             (_view as IHitStrategy)?.Hit(_model);

@@ -134,6 +134,7 @@ namespace MagicTile.TileSystem
             SpawnBackground(levelInfo.backgroundIndex, backgroundContainer);
 
             EventBus.Instance.Subscribe<LoseEvent>(OnLose);
+            EventBus.Instance.Subscribe<TileHitEvent>(OnTileHit);
         }
 
         public void Pause()
@@ -572,13 +573,19 @@ namespace MagicTile.TileSystem
             ClearBackground();
 
             if (EventBus.HasInstance)
+            {
                 EventBus.Instance.Unsubscribe<LoseEvent>(OnLose);
+                EventBus.Instance.Unsubscribe<TileHitEvent>(OnTileHit);
+            }
         }
 
         private void OnDestroy()
         {
             if (EventBus.HasInstance)
+            {
                 EventBus.Instance.Unsubscribe<LoseEvent>(OnLose);
+                EventBus.Instance.Unsubscribe<TileHitEvent>(OnTileHit);
+            }
 
             ClearLevel();
 
@@ -596,6 +603,19 @@ namespace MagicTile.TileSystem
             _audioService.Pause();
 
             StartCoroutine(RunLoseSeekAndSpawnReplay(e.TileTime));
+        }
+
+        private void OnTileHit(TileHitEvent e)
+        {
+            if (e.IsDragComplete) return;
+
+            var effectPrefab = ServiceLocator.ServiceLocator.Get<ConfigManager>()?.GlobalData?.EffectTouchItem;
+            if (effectPrefab == null) return;
+
+            var effect = _poolService.Get(effectPrefab);
+            if (effect == null) return;
+
+            effect.transform.position = new Vector3(e.TouchPosition.x, e.TouchPosition.y, 0f);
         }
 
         private IEnumerator RunLoseSeekAndSpawnReplay(float targetTime)

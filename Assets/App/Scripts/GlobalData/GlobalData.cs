@@ -7,6 +7,7 @@ namespace MagicTile.GlobalData
         [SerializeField] private float _scaleUnitForMoveTile = 1f;
         [SerializeField] private float _autoHideOffsetBelowScreen = 2f;
         [SerializeField] private float _loopRestartDelay = 2f;
+        [SerializeField] private EffectTouchItem _effectTouchItem;
 
         public float ScaleUnitForMoveTile
         {
@@ -21,6 +22,11 @@ namespace MagicTile.GlobalData
         public float LoopRestartDelay
         {
             get => _loopRestartDelay;
+        }
+
+        public EffectTouchItem EffectTouchItem
+        {
+            get => _effectTouchItem;
         }
     }
 }

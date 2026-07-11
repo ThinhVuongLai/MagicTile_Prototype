@@ -1,3 +1,4 @@
+using UnityEngine;
 using MagicTile.TileSystem;
 using MagicTile.Booster;
 
@@ -25,6 +26,12 @@ namespace MagicTile.Events
         public int BasePoints;         // 2 cho tap, bonus cho drag_complete
         public bool IsDragComplete;    // true nếu là sự kiện drag-completion
         public HitAccuracy Accuracy;   // độ chính xác dựa trên vị trí tile so với hit line
+        public Vector2 TouchPosition;  // vị trí ngón tay (world) khi hit
+    }
+
+    public struct CompleteDragEvent
+    {
+        
     }
 
     /// <summary>

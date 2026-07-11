@@ -15,3 +15,4 @@ MonoBehaviour:
   _scaleUnitForMoveTile: 4
   _autoHideOffsetBelowScreen: 0.5
   _loopRestartDelay: 2
+  _effectTouchItem: {fileID: 80616618144623387, guid: 7678bcd7f67f85b4f896a47c0f1ae81a, type: 3}

@@ -14,9 +14,9 @@ namespace MagicTile.ScoreSystem
         private static readonly (int min, float mult)[] ComboTiers =
         {
             (0,  1.0f),
-            (5,  1.5f),
-            (10, 2.0f),
-            (20, 3.0f)
+            (5,  2.0f),
+            (10, 3.0f),
+            (20, 5.0f)
         };
 
         // --- State ---
@@ -27,7 +27,7 @@ namespace MagicTile.ScoreSystem
         // --- Public read-only properties ---
         public int CurrentScore => _currentScore;
         public int CurrentCombo => _currentCombo;
-        public int MaxCombo     => _maxCombo;
+        public int MaxCombo => _maxCombo;
 
         private ScoreLevelManager()
         {
@@ -41,7 +41,7 @@ namespace MagicTile.ScoreSystem
         {
             _currentScore = 0;
             _currentCombo = 0;
-            _maxCombo     = 0;
+            _maxCombo = 0;
         }
 
         private void OnTileHit(TileHitEvent e)
@@ -50,22 +50,22 @@ namespace MagicTile.ScoreSystem
             if (_currentCombo > _maxCombo)
                 _maxCombo = _currentCombo;
 
-            float comboMult  = GetComboMultiplier(_currentCombo);
-            int   addedScore = Mathf.RoundToInt(e.BasePoints * comboMult);
+            float comboMult = GetComboMultiplier(_currentCombo);
+            int addedScore = Mathf.RoundToInt(e.BasePoints * comboMult);
 
             _currentScore += addedScore;
 
             EventBus.Instance.Publish(new ScoreChangedEvent
             {
-                TotalScore       = _currentScore,
-                AddedScore       = addedScore,
-                ComboMultiplier  = comboMult,
-                Accuracy         = e.Accuracy
+                TotalScore = _currentScore,
+                AddedScore = addedScore,
+                ComboMultiplier = comboMult,
+                Accuracy = e.Accuracy
             });
 
             EventBus.Instance.Publish(new ComboChangedEvent
             {
-                CurrentCombo    = _currentCombo,
+                CurrentCombo = _currentCombo,
                 ComboMultiplier = comboMult
             });
         }
