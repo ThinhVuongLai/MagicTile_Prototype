@@ -7,17 +7,11 @@ namespace MagicTile.TileSystem
     [RequireComponent(typeof(NoteZigzagMesh))]
     public class ZigzagTileView : TileView, IHitStrategy, IDragStrategy
     {
-        [Header("Drag Completion")]
-        [Tooltip("Offset from the top-center of the tile. 0 = top edge, 1 = 1 unit above.")]
-        [SerializeField] private float _dragCompletionOffset = 0f;
-
         [Header("Check Hit")]
         [SerializeField] private SpriteRenderer _checkHitSpriteRenderer;
 
         [Header("Fill")]
         [SerializeField] private NoteZigzagMesh _fillMesh;
-        [SerializeField] private float _offsetYForMaxFill;
-        [SerializeField] private float _offsetFromTouch;
 
         private static readonly int RevealYID = Shader.PropertyToID("_RevealY");
 
@@ -31,6 +25,8 @@ namespace MagicTile.TileSystem
 
         private bool _isCompleteDrag = false;
         private bool _finishFill = false;
+
+        private TileConfig _tileConfig;
 
         protected override void OnGetFromPoolInternal()
         {
@@ -54,6 +50,8 @@ namespace MagicTile.TileSystem
         {
             _isCompleteDrag = false;
             _finishFill = false;
+
+            _tileConfig = ServiceLocator.ServiceLocator.Get<ConfigManager>()?.TileConfig;
 
             if (_segment == null)
                 _segment = GetComponent<NoteZigzagMesh>();
@@ -132,7 +130,7 @@ namespace MagicTile.TileSystem
 
             SetFillSize(worldPos);
 
-            float thresholdY = GetTopCenterY() + _dragCompletionOffset;
+            float thresholdY = GetTopCenterY() + _tileConfig.ZigzagTile.DragCompletionOffset;
 
             if (worldPos.y >= thresholdY)
             {
@@ -165,9 +163,9 @@ namespace MagicTile.TileSystem
 
             Vector3 localPos = transform.InverseTransformPoint(fingerWorldPos);
 
-            float revealY = localPos.y + _offsetFromTouch;
+            float revealY = localPos.y + _tileConfig.ZigzagTile.OffsetFromTouch;
 
-            float maxFill = _fillMesh.GetLastPointPositionY() - _offsetYForMaxFill;
+            float maxFill = _fillMesh.GetLastPointPositionY() - _tileConfig.ZigzagTile.OffsetYForMaxFill;
 
             revealY = Mathf.Clamp(revealY, 0, maxFill);
 

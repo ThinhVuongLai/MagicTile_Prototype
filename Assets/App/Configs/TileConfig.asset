@@ -24,3 +24,13 @@ MonoBehaviour:
   _missPrefab: {fileID: 6541639372257651950, guid: 3bf5ca426bc86684e974cdf9e98c8702, type: 3}
   _startTileItem: {fileID: 1690826482733948950, guid: daa6367e4c22ded4ab8bd7571d82c0de, type: 3}
   _replayTileItem: {fileID: 9022387953022073520, guid: fcbe514dd11f1b842b74d03de2964324, type: 3}
+  _longTileSettings:
+    _dragCompletionOffset: 0
+    _startFillY: 0.2
+    _offsetYForMaxFill: 0.3
+    _offsetFromTouch: 0.2
+    _innerLineOffsetWithTop: 1.25
+  _zigzagTileSettings:
+    _dragCompletionOffset: 0
+    _offsetYForMaxFill: 0
+    _offsetFromTouch: 0.1
